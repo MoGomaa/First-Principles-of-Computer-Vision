@@ -2,42 +2,30 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from math import pi, degrees, radians, sin, cos, tan, asin, acos, atan, atan2
 
-image = cv2.imread("BinaryImageSingle.png", cv2.IMREAD_UNCHANGED)
-# image = cv2.imread("BinaryImageMultiple.png", cv2.IMREAD_UNCHANGED)
-print("Image shape:   ", image.shape)
+Size = (300, 300)
 
-unique, counts = np.unique(image, return_counts=True)
-counts         = dict(zip(unique, counts))
-print("Values: ", counts)
+walk = os.walk(".")
+filenames = list(walk)[0][2]
+images = [file for file in filenames if ".png" in file]
 
-# image[image <  128] = 0
-# image[image >= 128] = 255
-# unique, counts = np.unique(image, return_counts=True)
-# counts         = dict(zip(unique, counts))
-# print("Values: ", counts)
-
-Area = 0
-x_   = 0
-y_   = 0
-# Area = counts[255]
-# Area = np.sum(image) // 255
-for x in range(image.shape[1]):
-    for y in range(image.shape[0]):
-        if image[y][x]:
-            Area += 1
-            x_   += x
-            y_   += y
-x_ //= Area
-y_ //= Area 
-print("Area:", Area)
-print("x_:  ", x_)
-print("y_:  ", y_)
-
-# For sake of visualization
-image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB) 
-image = cv2.circle(image, (x_, y_), radius=0, color=(0, 0, 255), thickness=5)
-
-cv2.imshow("Binary", image)
-cv2.waitKey(0) 
-cv2.destroyAllWindows() 
+modified = False
+for path in images:
+    # read the image
+    image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    
+    # Make sure that image has 1-channel
+    if len(image.shape) == 3:
+        image = image[:, :, 0]
+    
+    # resize image
+    if image.shape != Size:
+        image = cv2.resize(image, Size)
+    
+    # Make sure image has only two values
+    image[image <  128] = 0
+    image[image >= 128] = 255
+    
+    # Save the preprocessed image 
+    cv2.imwrite(path, image)
