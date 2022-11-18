@@ -24,7 +24,7 @@ def equalizeNormalizeLabledImage(labledImage, equivalenceTable):
                 if lable not in newTable:
                     newTable[lable] = len(newTable.keys()) + 1
                 labledImage[r][c] = newTable[lable]
-    return labledImage
+    return len(newTable), labledImage
 
 
 
