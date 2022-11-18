@@ -57,15 +57,12 @@ def getColors(numColors):
         exp += 1
     linspace = np.linspace(0, 255, exp, dtype=int)
     colors   = [[r, g, b] for r in linspace for g in linspace for b in linspace]
-    print(len(colors))
     return [colors[idx] for idx in np.linspace(0, len(colors)-1, numColors, dtype=int)]
 
 def colorize(image):
     unique = np.unique(image)
     colors = getColors(len(unique))
-    print(colors)
     coloredImage = np.zeros((image.shape[0], image.shape[1], 3))
-    print(coloredImage.shape)
     for i in range(1, len(colors)):
         coloredImage[image == i] = colors[i]
     return coloredImage
