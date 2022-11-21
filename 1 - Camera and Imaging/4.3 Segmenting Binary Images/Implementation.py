@@ -1,52 +1,52 @@
 import cv2
 import numpy as np
 
-def getProirNeighbourLables(image, r, c):
-    return [lable for lable in image[r-1:r+1, c-1:c+1].flatten()[:-1] if lable]
+def getProirNeighbourLabels(image, r, c):
+    return [label for label in image[r-1:r+1, c-1:c+1].flatten()[:-1] if label]
 
-def getLable(table, lable):
-    while len(table[lable]):
-        lable = min(table[lable])
-    return lable
+def getLabel(table, label):
+    while len(table[label]):
+        label = min(table[label])
+    return label
 
-def fixEquivalenceTable(table, key, lable):
-    if lable not in table[key]:
-        table[key].append(lable)
-        for otherLable in table[key][:-1]:
-            fixEquivalenceTable(table, otherLable, lable)
+def fixEquivalenceTable(table, key, label):
+    if label not in table[key]:
+        table[key].append(label)
+        for otherLabel in table[key][:-1]:
+            fixEquivalenceTable(table, otherLabel, label)
 
-def equalizeNormalizeLabledImage(labledImage, equivalenceTable):
+def equalizeNormalizeLabeldImage(labeldImage, equivalenceTable):
     newTable = {}
-    for r in range(labledImage.shape[0]):
-        for c in range(labledImage.shape[1]):
-            if labledImage[r][c]:
-                lable = getLable(equivalenceTable, labledImage[r][c])
-                if lable not in newTable:
-                    newTable[lable] = len(newTable.keys()) + 1
-                labledImage[r][c] = newTable[lable]
-    return len(newTable), labledImage
+    for r in range(labeldImage.shape[0]):
+        for c in range(labeldImage.shape[1]):
+            if labeldImage[r][c]:
+                label = getLabel(equivalenceTable, labeldImage[r][c])
+                if label not in newTable:
+                    newTable[label] = len(newTable.keys()) + 1
+                labeldImage[r][c] = newTable[label]
+    return len(newTable), labeldImage
 
 
 
 def getConnectedComponent(image: np.ndarray):   
-    labledImage      = np.zeros_like(image)
+    labeldImage      = np.zeros_like(image)
     equivalenceTable = {}
     for r in range(image.shape[0]):
         for c in range(image.shape[1]):
             if image[r][c]:
-                neighbourLables = getProirNeighbourLables(labledImage, r, c)
-                if len(neighbourLables) == 0:
-                    newLable = len(list(equivalenceTable.keys())) + 1
-                    equivalenceTable[newLable] = []
-                    labledImage[r][c] = newLable
+                neighbourLabels = getProirNeighbourLabels(labeldImage, r, c)
+                if len(neighbourLabels) == 0:
+                    newLabel = len(list(equivalenceTable.keys())) + 1
+                    equivalenceTable[newLabel] = []
+                    labeldImage[r][c] = newLabel
                 else:
-                    lable = getLable(equivalenceTable, min(neighbourLables))
-                    labledImage[r][c] = lable
-                    for l in neighbourLables:
-                        if l != lable:
-                            fixEquivalenceTable(equivalenceTable, l, lable)
-    labledImage = equalizeNormalizeLabledImage(labledImage, equivalenceTable)
-    return labledImage
+                    label = getLabel(equivalenceTable, min(neighbourLabels))
+                    labeldImage[r][c] = label
+                    for l in neighbourLabels:
+                        if l != label:
+                            fixEquivalenceTable(equivalenceTable, l, label)
+    labeldImage = equalizeNormalizeLabeldImage(labeldImage, equivalenceTable)
+    return labeldImage
 
 
 def getColors(numColors):
