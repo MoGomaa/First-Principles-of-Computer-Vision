@@ -16,16 +16,25 @@ def fixEquivalenceTable(table, key, label):
             fixEquivalenceTable(table, otherLabel, label)
 
 def equalizeNormalizeLabeldImage(labeldImage, equivalenceTable):
-    newTable = {}
+    Areas      = []
+    Centeroids = []
+    newTable   = {}
     for r in range(labeldImage.shape[0]):
         for c in range(labeldImage.shape[1]):
             if labeldImage[r][c]:
                 label = getLabel(equivalenceTable, labeldImage[r][c])
                 if label not in newTable:
-                    newTable[label] = len(newTable.keys()) + 1
-                labeldImage[r][c] = newTable[label]
-    return len(newTable), labeldImage
-
+                    newTable[label]       = len(newTable.keys()) + 1
+                    Areas.append(0)
+                    Centeroids.append((0, 0))
+                labeldImage[r][c]       = newTable[label]
+                Areas[label-1]         += 1
+                Centeroids[label-1][0] += c
+                Centeroids[label-1][1] += r
+    for i in range(len(newTable)):
+        Centeroids[i][0] /= Areas[i]
+        Centeroids[i][1] /= Areas[i]
+    return len(newTable), labeldImage, Areas, Centeroids
 
 
 def getConnectedComponent(image: np.ndarray):   
@@ -45,8 +54,7 @@ def getConnectedComponent(image: np.ndarray):
                     for l in neighbourLabels:
                         if l != label:
                             fixEquivalenceTable(equivalenceTable, l, label)
-    labeldImage = equalizeNormalizeLabeldImage(labeldImage, equivalenceTable)
-    return labeldImage
+    return equalizeNormalizeLabeldImage(labeldImage, equivalenceTable)
 
 
 def getColors(numColors):
