@@ -1,77 +1,59 @@
 import cv2
 import numpy as np
 
-def getProirNeighbourLabels(image, r, c):
-    return [label for label in image[r-1:r+1, c-1:c+1].flatten()[:-1] if label]
+def isPosInShape(pos, shape):
+    for i in range(len(pos)):
+        if pos[i] < 0 or pos[i] >= shape[i]:
+            return False
+    return True
 
-def getLabel(table, label):
-    while len(table[label]):
-        label = min(table[label])
-    return label
-
-def fixEquivalenceTable(table, key, label):
-    if label not in table[key]:
-        table[key].append(label)
-        for otherLabel in table[key][:-1]:
-            fixEquivalenceTable(table, otherLabel, label)
-
-def equalizeNormalizeLabeledImage(labeledImage, equivalenceTable):
-    Areas      = []
-    Centeroids = []
-    newTable   = {}
-    for r in range(labeledImage.shape[0]):
-        for c in range(labeledImage.shape[1]):
-            if labeledImage[r][c]:
-                label = getLabel(equivalenceTable, labeledImage[r][c])
-                if label not in newTable:
-                    newTable[label]       = len(newTable.keys()) + 1
-                    Areas.append(0)
-                    Centeroids.append([0, 0])
-                labeledImage[r][c]      = newTable[label]
-                Areas[newTable[label]-1]         += 1
-                Centeroids[newTable[label]-1][0] += c
-                Centeroids[newTable[label]-1][1] += r
-    for i in range(len(newTable)):
-        Centeroids[i][0] /= Areas[i]
-        Centeroids[i][1] /= Areas[i]
-    return len(newTable), labeledImage, Areas, Centeroids
-
-
-def getConnectedComponent(image: np.ndarray):   
-    labeledImage      = np.zeros_like(image)
-    equivalenceTable = {}
+def morphologicalErode(image, kernel):
+    def operateOnPixel(r, c):
+        half = (kernel.shape[0] // 2, kernel.shape[1] // 2)
+        if not image[r][c]:
+            return 0
+        indices = [(r+i-half[0], c+j-half[1]) for i in range(kernel.shape[0]) for j in range(kernel.shape[1]) if kernel[i][j] == 1]
+        indices = [idx for idx in indices if isPosInShape(idx, image.shape)]
+        for idx in indices:
+            if not image[idx]:
+                return 0
+        return 1
+    
+    outputImage = np.zeros_like(image)
     for r in range(image.shape[0]):
         for c in range(image.shape[1]):
-            if image[r][c]:
-                neighbourLabels = getProirNeighbourLabels(labeledImage, r, c)
-                if len(neighbourLabels) == 0:
-                    newLabel = len(list(equivalenceTable.keys())) + 1
-                    equivalenceTable[newLabel] = []
-                    labeledImage[r][c] = newLabel
-                else:
-                    label = getLabel(equivalenceTable, min(neighbourLabels))
-                    labeledImage[r][c] = label
-                    for l in neighbourLabels:
-                        if l != label:
-                            fixEquivalenceTable(equivalenceTable, l, label)
-    return equalizeNormalizeLabeledImage(labeledImage, equivalenceTable)
+            outputImage[r][c] = operateOnPixel(r, c)
+    return outputImage
 
+def morphologicalDilate(image, kernel):
+    def operateOnPixel(r, c):
+        half = (kernel.shape[0] // 2, kernel.shape[1] // 2)
+        if image[r][c]:
+            return 1
+        indices = [(r+i-half[0], c+j-half[1]) for i in range(kernel.shape[0]) for j in range(kernel.shape[1]) if kernel[i][j] == 1]
+        indices = [idx for idx in indices if isPosInShape(idx, image.shape)]
+        for idx in indices:
+            if image[idx]:
+                return 1
+        return 0
+    
+    outputImage = np.zeros_like(image)
+    for r in range(image.shape[0]):
+        for c in range(image.shape[1]):
+            outputImage[r][c] = operateOnPixel(r, c)
+    return outputImage
 
-def getColors(numColors):
-    exp = 0
-    while True:
-        if numColors <= exp**3:
-            break
-        exp += 1
-    linspace = np.linspace(0, 255, exp, dtype=int)
-    colors   = [[r, g, b] for r in linspace for g in linspace for b in linspace]
-    return [colors[idx] for idx in np.linspace(0, len(colors)-1, numColors, dtype=int)]
+def morphologicalOpen(image, kernel):
+    return morphologicalDilate(morphologicalErode(image, kernel), kernel)
 
-def colorize(image):
-    unique = np.unique(image)
-    colors = getColors(len(unique))
-    coloredImage = np.zeros((image.shape[0], image.shape[1], 3))
-    for i in range(1, len(colors)):
-        coloredImage[image == i] = colors[i]
-    return coloredImage
+def morphologicalClose(image, kernel):
+    return morphologicalErode(morphologicalDilate(image, kernel), kernel)
 
+def morphologicalHitMiss(image, kernel):
+    def operateOnPixel(r, c):
+        half = (kernel.shape[0] // 2, kernel.shape[1] // 2)
+        indices = [(i, j, r+i-half[0], c+j-half[1]) for i in range(kernel.shape[0]) for j in range(kernel.shape[1]) if kernel[i][j] == 1 or kernel[i][j] == 0]
+        for idx in indices:
+            if not isPosInShape((idx[2:]), image.shape) or kernel[idx[:2]] != image[idx[2:]] // 255:
+                return 0
+        return 1
